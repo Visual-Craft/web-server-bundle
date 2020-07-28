@@ -1,0 +1,67 @@
+<?php
+
+namespace VisualCraft\Bundle\WebServerBundle\Command;
+
+use VisualCraft\Bundle\WebServerBundle\WebServer;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\ConsoleOutputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
+
+/**
+ * Stops a background process running a local web server.
+ */
+class ServerStopCommand extends Command
+{
+    protected static $defaultName = 'server:stop';
+
+    private $pidFileDirectory;
+
+    public function __construct(string $pidFileDirectory = null)
+    {
+        $this->pidFileDirectory = $pidFileDirectory;
+
+        parent::__construct();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function configure()
+    {
+        $this
+            ->setDefinition([
+                new InputOption('pidfile', null, InputOption::VALUE_REQUIRED, 'PID file'),
+            ])
+            ->setDescription('Stops the local web server that was started with the server:start command')
+            ->setHelp(<<<'EOF'
+<info>%command.name%</info> stops the local web server:
+
+  <info>php %command.full_name%</info>
+EOF
+            )
+        ;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function execute(InputInterface $input, OutputInterface $output)
+    {
+        $io = new SymfonyStyle($input, $output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : $output);
+
+        try {
+            $server = new WebServer($this->pidFileDirectory);
+            $server->stop($input->getOption('pidfile'));
+            $io->success('Stopped the web server.');
+        } catch (\Exception $e) {
+            $io->error($e->getMessage());
+
+            return 1;
+        }
+
+        return 0;
+    }
+}
